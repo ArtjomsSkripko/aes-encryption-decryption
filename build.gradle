@@ -13,6 +13,11 @@ repositories {
 }
 
 dependencies {
+    compile group: 'org.springframework.boot', name: 'spring-boot-starter-jdbc', version: '2.2.6.RELEASE'
+    compile group: 'org.springframework.boot', name: 'spring-boot-starter-security', version: '2.2.6.RELEASE'
+    implementation group: 'mysql', name: 'mysql-connector-java', version: '8.0.23'
+    compile group: 'com.nimbusds', name: 'nimbus-jose-jwt', version: '8.15'
+    compile group: 'org.apache.commons', name: 'commons-collections4', version: '4.4'
     implementation 'org.springframework.boot:spring-boot-starter-web'
     compile group: 'io.springfox', name: 'springfox-swagger2', version: '2.9.2'
     compile group: 'org.apache.commons', name: 'commons-lang3', version: '3.9'

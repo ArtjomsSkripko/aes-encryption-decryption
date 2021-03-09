@@ -15,12 +15,18 @@ import javax.crypto.SecretKey;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
+import aes.jwt.authorization.JWTokenHelper;
+import com.nimbusds.jose.JOSEException;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.commons.lang3.tuple.Triple;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 @Service
 public class AESService {
+
+    @Autowired
+    private JWTokenHelper jwTokenHelper;
 
     /**
      * Encrypts text with AES algorithm. Before encryption is performed, service compresses text with Elias Delta algorithm.
@@ -60,6 +66,18 @@ public class AESService {
             error = String.format("Error happened during decryption - provided key or text is invalid. Failure message: %s", e.getMessage());
         }
         return Pair.of(decryptedText, error);
+    }
+
+    /**
+     * Decrypts text that was encrypted by AES algorithm. After text is decrypted, text is decompressed by Elias Delta algorithm
+     *
+     * @param textToDecrypt text to decrypt
+     * @param key           key that was used for encryption
+     * @return Pair of decrypted text and error message (if exists)
+     */
+    public String generateToken(String userName, String userId, String password) throws JOSEException {
+
+        return "Bearer " + jwTokenHelper.createJWT(userId, userName);
     }
 
     /* Encryption and decryption specific methods */
