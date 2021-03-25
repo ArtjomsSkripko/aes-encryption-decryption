@@ -7,17 +7,24 @@ public class UserToken {
 
     private String token;
     private String username;
+    private String name;
+    private String surname;
     private String tokenId;
-    private String userId;
+    private String customerId;
     private String userRole;
     private Exception validationException;
 
     public UserToken(String username,
                      String userRole,
-                     String userId) {
+                     String customerId,
+                     String name,
+                     String surname
+                     ) {
         this.username = username;
         this.userRole = userRole;
-        this.userId = userId;
+        this.customerId = customerId;
+        this.surname = name;
+        this.surname = surname;
     }
 
     public UserToken() {
@@ -49,12 +56,12 @@ public class UserToken {
         this.tokenId = tokenId;
     }
 
-    public String getUserId() {
-        return userId;
+    public String getCustomerId() {
+        return customerId;
     }
 
-    public void setUserId(String userId) {
-        this.userId = userId;
+    public void setCustomerId(String customerId) {
+        this.customerId = customerId;
     }
 
     public String getUserRole() {
@@ -71,5 +78,21 @@ public class UserToken {
 
     public void setValidationException(Exception validationException) {
         this.validationException = validationException;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public String getSurname() {
+        return surname;
+    }
+
+    public void setSurname(String surname) {
+        this.surname = surname;
     }
 }

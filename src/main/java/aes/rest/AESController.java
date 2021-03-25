@@ -1,7 +1,16 @@
 package aes.rest;
 
+import java.security.InvalidAlgorithmParameterException;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
+import javax.crypto.BadPaddingException;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
+
 import aes.jwt.authorization.UserToken;
 import aes.jwt.authorization.Utils;
+import aes.model.Customer;
+import aes.model.NewCustomerRequest;
 import aes.service.AESService;
 import com.nimbusds.jose.JOSEException;
 import io.swagger.annotations.Api;
@@ -14,6 +23,7 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.apache.commons.lang3.tuple.Triple;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -68,6 +78,23 @@ public class AESController {
         @ApiImplicitParam(name = "password", value = "password", dataType = "string", paramType = "query")
     })
     public String authorize(String userName, String password) throws JOSEException {
-        return aesService.generateToken(userName, userName, password);
+        return aesService.generateToken(userName, password);
+    }
+
+    @RequestMapping(value = "/create", method = RequestMethod.POST)
+    @ApiOperation(value = "Create new user")
+    public Pair<String, Customer> createUser(@RequestBody NewCustomerRequest customerRequest) throws JOSEException, BadPaddingException, InvalidKeyException, NoSuchAlgorithmException, IllegalBlockSizeException, NoSuchPaddingException, InvalidAlgorithmParameterException {
+        return aesService.createUser(customerRequest);
+    }
+
+    @RequestMapping(value = "/test", method = RequestMethod.POST)
+    @ApiOperation(value = "Test authorization")
+    public ResponseEntity<String> testAuthorization() {
+        UserToken serviceUser = Utils.getServiceUser();
+        if (serviceUser == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
+        } else {
+            return new ResponseEntity<>("Authorization success", HttpStatus.ACCEPTED);
+        }
     }
 }

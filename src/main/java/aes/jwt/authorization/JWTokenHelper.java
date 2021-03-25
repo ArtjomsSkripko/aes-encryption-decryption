@@ -38,6 +38,8 @@ public class JWTokenHelper {
 
     private static final String JWT_CLAIMS_USER_ID = "user_id";
     private static final String JWT_CLAIMS_USERNAME = "username";
+    private static final String JWT_CLAIMS_NAME = "name";
+    private static final String JWT_CLAIMS_SURNAME = "surname";
     private static final String JWT_CLAIMS_USER_ROLE = "role";
 
     public UserToken parseAccessToken(String token) throws ParseException, BadJOSEException, JOSEException {
@@ -57,9 +59,11 @@ public class JWTokenHelper {
             jwtProcessor.setJWSKeySelector(keySelector);
             JWTClaimsSet claimsSet = jwtProcessor.process(token, null);
             authContext.setTokenId(claimsSet.getJWTID());
-            authContext.setUserId(claimsSet.getStringClaim(JWT_CLAIMS_USER_ID));
+            authContext.setCustomerId(claimsSet.getStringClaim(JWT_CLAIMS_USER_ID));
             authContext.setUsername(claimsSet.getStringClaim(JWT_CLAIMS_USERNAME));
             authContext.setUserRole(claimsSet.getStringClaim(JWT_CLAIMS_USER_ROLE));
+            authContext.setName(claimsSet.getStringClaim(JWT_CLAIMS_NAME));
+            authContext.setSurname(claimsSet.getStringClaim(JWT_CLAIMS_SURNAME));
         } catch (BadJWTException e) {
             returnException = new Exception(e.getMessage());
         }
@@ -67,11 +71,13 @@ public class JWTokenHelper {
         return authContext;
     }
 
-    public String createJWT(String userId, String userName) throws JOSEException {
+    public String createJWT(String userId, String userName, String name, String surname) throws JOSEException {
         JSONObject jsonObject = new JSONObject();
         jsonObject.put(JWT_CLAIMS_USER_ID, userId);
         jsonObject.put(JWT_CLAIMS_USERNAME, userName);
         jsonObject.put(JWT_CLAIMS_USER_ROLE, "REGULAR_USER");
+        jsonObject.put(JWT_CLAIMS_NAME, name);
+        jsonObject.put(JWT_CLAIMS_SURNAME, surname);
         JWSObject jwsObject = new JWSObject(new JWSHeader(JWSAlgorithm.HS256), new Payload(jsonObject));
         jwsObject.sign(new MACSigner(Objects.requireNonNull(env.getProperty("jwt.key"))));
 

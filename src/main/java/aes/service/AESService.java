@@ -16,10 +16,14 @@ import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
 import aes.jwt.authorization.JWTokenHelper;
+import aes.model.Customer;
+import aes.model.NewCustomerRequest;
+import aes.repository.AESRepository;
 import com.nimbusds.jose.JOSEException;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.commons.lang3.tuple.Triple;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -27,6 +31,10 @@ public class AESService {
 
     @Autowired
     private JWTokenHelper jwTokenHelper;
+    @Autowired
+    private AESRepository repository;
+    @Autowired
+    private Environment env;
 
     /**
      * Encrypts text with AES algorithm. Before encryption is performed, service compresses text with Elias Delta algorithm.
@@ -49,6 +57,19 @@ public class AESService {
     }
 
     /**
+     * Encrypts text with AES algorithm. Before encryption is performed, service compresses text with Elias Delta algorithm.
+     *
+     * @param textToEncrypt text to encrypt
+     * @param key key
+     * @return encrypted text
+     */
+    public String encryptTextWithKey(String textToEncrypt, String key) throws NoSuchAlgorithmException, IllegalBlockSizeException, InvalidKeyException, BadPaddingException, InvalidAlgorithmParameterException, NoSuchPaddingException {
+        byte[] decodedKey = Base64.getDecoder().decode(key);
+        SecretKey originalKey = new SecretKeySpec(decodedKey, 0, decodedKey.length, "AES");
+        return performAESEncryption(textToEncrypt, originalKey, generateIv());
+    }
+
+    /**
      * Decrypts text that was encrypted by AES algorithm. After text is decrypted, text is decompressed by Elias Delta algorithm
      *
      * @param textToDecrypt text to decrypt
@@ -68,16 +89,28 @@ public class AESService {
         return Pair.of(decryptedText, error);
     }
 
-    /**
-     * Decrypts text that was encrypted by AES algorithm. After text is decrypted, text is decompressed by Elias Delta algorithm
-     *
-     * @param textToDecrypt text to decrypt
-     * @param key           key that was used for encryption
-     * @return Pair of decrypted text and error message (if exists)
-     */
-    public String generateToken(String userName, String userId, String password) throws JOSEException {
+    public String generateToken(String userName, String password) throws JOSEException {
+        Customer foundCustomer = repository.findCustomer(userName);
 
-        return "Bearer " + jwTokenHelper.createJWT(userId, userName);
+        String actualPassword = foundCustomer == null ? null : decryptText(foundCustomer.getPassword(), String.valueOf(env.getProperty("aes.key"))).getKey();
+        if (password == null || !password.equals(actualPassword)) {
+            throw new SecurityException("Access denied");
+        }
+        return "Bearer " + jwTokenHelper.createJWT(foundCustomer.getCustomerId().toString(), foundCustomer.getUsername(),
+            foundCustomer.getName(), foundCustomer.getSurname());
+    }
+
+    public Pair<String, Customer> createUser(NewCustomerRequest customerRequest) throws JOSEException, BadPaddingException, InvalidAlgorithmParameterException, NoSuchAlgorithmException, IllegalBlockSizeException, NoSuchPaddingException, InvalidKeyException {
+        Customer newCustomer = new Customer(customerRequest.getName(), customerRequest.getSurname(), customerRequest.getUsername(),
+            encryptTextWithKey(customerRequest.getPassword(), String.valueOf(env.getProperty("aes.key"))), "REGULAR_USER");
+        repository.addNewCustomer(newCustomer);
+        Customer foundCustomer = repository.findCustomer(newCustomer.getUsername());
+
+        String token = "Bearer " + jwTokenHelper.createJWT(String.valueOf(foundCustomer.getCustomerId()), foundCustomer.getUsername(),
+            foundCustomer.getName(), foundCustomer.getSurname());
+
+        foundCustomer.setPassword(customerRequest.getPassword());
+        return Pair.of(token, foundCustomer);
     }
 
     /* Encryption and decryption specific methods */

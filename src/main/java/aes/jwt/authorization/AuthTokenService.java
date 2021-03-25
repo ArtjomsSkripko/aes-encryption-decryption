@@ -21,7 +21,7 @@ public class AuthTokenService {
             userTokenContainer.setUsername(authContext.getUsername());
             userTokenContainer.setTokenId(authContext.getTokenId());
             userTokenContainer.setUserRole(authContext.getUserRole());
-            userTokenContainer.setUserId(authContext.getUserId());
+            userTokenContainer.setCustomerId(authContext.getCustomerId());
             return userTokenContainer;
         } else {
             throw authContext.getValidationException();

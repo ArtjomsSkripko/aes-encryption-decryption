@@ -6,9 +6,12 @@ server:
 spring:
   datasource:
     driverClassName: com.mysql.jdbc.Driver
-    url: jdbc:mysql://127.0.0.1:3306/test
+    url: jdbc:mysql://127.0.0.1:3306/emsdb
     username: root
     password: password
 
 jwt:
   key: SK5dOzWMKLmnNvAe6DeaNaIxYIEOSF8AD7ZFbeIavEu
+
+aes:
+  key: PF6a1lZNMNfaDaEa7EaeArTuBVROSF8AD7ZFlvKfuUe
