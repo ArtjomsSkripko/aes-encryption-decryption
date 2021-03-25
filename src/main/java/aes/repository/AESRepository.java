@@ -29,6 +29,9 @@ public class AESRepository {
             "FROM emsdb.customer " +
             "WHERE username=:username";
 
+    private static final String UPDATE_PASSWORD_SQL = "UPDATE emsdb.customer " +
+    "SET password=:password WHERE username=:username";
+
     private final NamedParameterJdbcTemplate parameterTemplate;
     private final SimpleJdbcInsert insertCustomerIml;
     private final CustomerRowExtractor customerRowExtractor = new CustomerRowExtractor();
@@ -57,6 +60,14 @@ public class AESRepository {
         passengerParams.addValue(CLN_SURNAME, customer.getSurname());
 
         insertCustomerIml.executeAndReturnKey(passengerParams).longValue();
+    }
+
+    public void updatePassword(String userName, String password) {
+        MapSqlParameterSource passengerParams = new MapSqlParameterSource();
+        passengerParams.addValue(CLN_USERNAME, userName);
+        passengerParams.addValue(CLN_PASSWORD, password);
+
+        parameterTemplate.update(UPDATE_PASSWORD_SQL, passengerParams);
     }
 
     public Customer findCustomer(String userName) {

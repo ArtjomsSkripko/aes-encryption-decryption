@@ -3,6 +3,9 @@ package aes.rest;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
+import java.util.Arrays;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
@@ -84,7 +87,46 @@ public class AESController {
     @RequestMapping(value = "/create", method = RequestMethod.POST)
     @ApiOperation(value = "Create new user")
     public Pair<String, Customer> createUser(@RequestBody NewCustomerRequest customerRequest) throws JOSEException, BadPaddingException, InvalidKeyException, NoSuchAlgorithmException, IllegalBlockSizeException, NoSuchPaddingException, InvalidAlgorithmParameterException {
+        if (customerRequest.getPassword().length() < 8) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Password should contain at least 8 characters");
+        }
+
+        if (customerRequest.getPassword().chars().noneMatch(Character::isDigit)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Password has to contain at least one digit");
+        }
+
+        if (!Pattern.compile("[^a-z0-9 ]", Pattern.CASE_INSENSITIVE).matcher(customerRequest.getPassword()).find()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Password has to contain at least one special character");
+        }
+
         return aesService.createUser(customerRequest);
+    }
+
+    @RequestMapping(value = "/change-password", method = RequestMethod.POST)
+    @ApiOperation(value = "ChangePassword")
+    public Customer changePassword(String oldPassword, String newPassword) throws BadPaddingException, InvalidKeyException, NoSuchAlgorithmException, IllegalBlockSizeException, NoSuchPaddingException, InvalidAlgorithmParameterException {
+        UserToken serviceUser = Utils.getServiceUser();
+        if (serviceUser == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Unauthorized user is not authorized to use this endpoint");
+        }
+
+        if (oldPassword.equals(newPassword)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "New password cannot be equal to old password");
+        }
+
+        if (newPassword.length() < 8) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Password should contain at least 8 characters");
+        }
+
+        if (newPassword.chars().noneMatch(Character::isDigit)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Password has to contain at least one digit");
+        }
+
+        if (!Pattern.compile("[^a-z0-9 ]", Pattern.CASE_INSENSITIVE).matcher(newPassword).find()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Password has to contain at least one special character");
+        }
+
+        return aesService.updatePassword(serviceUser.getUsername(), oldPassword, newPassword);
     }
 
     @RequestMapping(value = "/test", method = RequestMethod.POST)

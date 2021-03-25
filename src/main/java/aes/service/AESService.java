@@ -100,6 +100,19 @@ public class AESService {
             foundCustomer.getName(), foundCustomer.getSurname());
     }
 
+    public Customer updatePassword(String userName, String oldPassword, String newPassword) throws BadPaddingException, InvalidAlgorithmParameterException, NoSuchAlgorithmException, IllegalBlockSizeException, NoSuchPaddingException, InvalidKeyException {
+        Customer foundCustomer = repository.findCustomer(userName);
+
+        String actualPassword = foundCustomer == null ? null : decryptText(foundCustomer.getPassword(), String.valueOf(env.getProperty("aes.key"))).getKey();
+        if (oldPassword == null || !oldPassword.equals(actualPassword)) {
+            throw new SecurityException("Access denied");
+        }
+
+        repository.updatePassword(userName, encryptTextWithKey(newPassword, String.valueOf(env.getProperty("aes.key"))));
+        foundCustomer.setPassword(newPassword);
+        return foundCustomer;
+    }
+
     public Pair<String, Customer> createUser(NewCustomerRequest customerRequest) throws JOSEException, BadPaddingException, InvalidAlgorithmParameterException, NoSuchAlgorithmException, IllegalBlockSizeException, NoSuchPaddingException, InvalidKeyException {
         Customer newCustomer = new Customer(customerRequest.getName(), customerRequest.getSurname(), customerRequest.getUsername(),
             encryptTextWithKey(customerRequest.getPassword(), String.valueOf(env.getProperty("aes.key"))), "REGULAR_USER");
