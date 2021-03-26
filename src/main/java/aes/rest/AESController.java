@@ -3,6 +3,7 @@ package aes.rest;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
+import java.time.ZonedDateTime;
 import java.util.Arrays;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -14,6 +15,7 @@ import aes.jwt.authorization.UserToken;
 import aes.jwt.authorization.Utils;
 import aes.model.Customer;
 import aes.model.NewCustomerRequest;
+import aes.model.ResponseDTO;
 import aes.service.AESService;
 import com.nimbusds.jose.JOSEException;
 import io.swagger.annotations.Api;
@@ -55,6 +57,10 @@ public class AESController {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Current user is not authorized to use this endpoint");
         }
 
+        if (serviceUser.getValidTo().isBefore(ZonedDateTime.now())) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Jwt token has expired");
+        }
+
         Triple<String, String, String> encryptionData = aesService.encryptText(request.getTextToEncrypt());
         return new EncryptionResponse(encryptionData.getLeft(), encryptionData.getMiddle(), encryptionData.getRight());
     }
@@ -70,6 +76,11 @@ public class AESController {
         if (serviceUser == null || !serviceUser.getUserRole().equals("ADMIN")) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Current user is not authorized to use this endpoint");
         }
+
+        if (serviceUser.getValidTo().isBefore(ZonedDateTime.now())) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Jwt token has expired");
+        }
+
         Pair<String, String> decryptionResult = aesService.decryptText(request.getTextToDecrypt(), request.getKey());
         return new DecryptionResponse(decryptionResult.getKey(), decryptionResult.getRight());
     }
@@ -86,47 +97,21 @@ public class AESController {
 
     @RequestMapping(value = "/create", method = RequestMethod.POST)
     @ApiOperation(value = "Create new user")
-    public Pair<String, Customer> createUser(@RequestBody NewCustomerRequest customerRequest) throws JOSEException, BadPaddingException, InvalidKeyException, NoSuchAlgorithmException, IllegalBlockSizeException, NoSuchPaddingException, InvalidAlgorithmParameterException {
-        if (customerRequest.getPassword().length() < 8) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Password should contain at least 8 characters");
-        }
-
-        if (customerRequest.getPassword().chars().noneMatch(Character::isDigit)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Password has to contain at least one digit");
-        }
-
-        if (!Pattern.compile("[^a-z0-9 ]", Pattern.CASE_INSENSITIVE).matcher(customerRequest.getPassword()).find()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Password has to contain at least one special character");
-        }
+    public ResponseDTO createUser(@RequestBody NewCustomerRequest customerRequest) throws JOSEException, BadPaddingException, InvalidKeyException, NoSuchAlgorithmException, IllegalBlockSizeException, NoSuchPaddingException, InvalidAlgorithmParameterException {
+        validatePasswordPattern(customerRequest.getPassword());
 
         return aesService.createUser(customerRequest);
     }
 
     @RequestMapping(value = "/change-password", method = RequestMethod.POST)
     @ApiOperation(value = "ChangePassword")
-    public Customer changePassword(String oldPassword, String newPassword) throws BadPaddingException, InvalidKeyException, NoSuchAlgorithmException, IllegalBlockSizeException, NoSuchPaddingException, InvalidAlgorithmParameterException {
-        UserToken serviceUser = Utils.getServiceUser();
-        if (serviceUser == null) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Unauthorized user is not authorized to use this endpoint");
-        }
-
+    public ResponseDTO changePassword(String userName, String oldPassword, String newPassword) throws BadPaddingException, InvalidKeyException, NoSuchAlgorithmException, IllegalBlockSizeException, NoSuchPaddingException, InvalidAlgorithmParameterException, JOSEException {
         if (oldPassword.equals(newPassword)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "New password cannot be equal to old password");
         }
+        validatePasswordPattern(newPassword);
 
-        if (newPassword.length() < 8) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Password should contain at least 8 characters");
-        }
-
-        if (newPassword.chars().noneMatch(Character::isDigit)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Password has to contain at least one digit");
-        }
-
-        if (!Pattern.compile("[^a-z0-9 ]", Pattern.CASE_INSENSITIVE).matcher(newPassword).find()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Password has to contain at least one special character");
-        }
-
-        return aesService.updatePassword(serviceUser.getUsername(), oldPassword, newPassword);
+        return aesService.updatePassword(userName, oldPassword, newPassword);
     }
 
     @RequestMapping(value = "/test", method = RequestMethod.POST)
@@ -135,8 +120,24 @@ public class AESController {
         UserToken serviceUser = Utils.getServiceUser();
         if (serviceUser == null) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
-        } else {
-            return new ResponseEntity<>("Authorization success", HttpStatus.ACCEPTED);
+        }
+        if (serviceUser.getValidTo().isBefore(ZonedDateTime.now())) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Jwt token has expired");
+        }
+        return new ResponseEntity<>("Authorization success", HttpStatus.ACCEPTED);
+    }
+
+    private void validatePasswordPattern(String password){
+        if (password.length() < 8) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Password should contain at least 8 characters");
+        }
+
+        if (password.chars().noneMatch(Character::isDigit)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Password has to contain at least one digit");
+        }
+
+        if (!Pattern.compile("[^a-z0-9 ]", Pattern.CASE_INSENSITIVE).matcher(password).find()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Password has to contain at least one special character");
         }
     }
 }

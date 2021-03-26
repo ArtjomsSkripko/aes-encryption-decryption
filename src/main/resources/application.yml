@@ -12,6 +12,10 @@ spring:
 
 jwt:
   key: SK5dOzWMKLmnNvAe6DeaNaIxYIEOSF8AD7ZFbeIavEu
+  validity: PT2H
+
+password:
+  validity: P75D
 
 aes:
   key: PF6a1lZNMNfaDaEa7EaeArTuBVROSF8AD7ZFlvKfuUe

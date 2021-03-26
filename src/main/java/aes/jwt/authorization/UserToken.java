@@ -1,5 +1,7 @@
 package aes.jwt.authorization;
 
+import java.time.ZonedDateTime;
+
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -12,19 +14,22 @@ public class UserToken {
     private String tokenId;
     private String customerId;
     private String userRole;
+    private ZonedDateTime validTo;
     private Exception validationException;
 
     public UserToken(String username,
                      String userRole,
                      String customerId,
                      String name,
-                     String surname
+                     String surname,
+                     ZonedDateTime validTo
                      ) {
         this.username = username;
         this.userRole = userRole;
         this.customerId = customerId;
         this.surname = name;
         this.surname = surname;
+        this.validTo = validTo;
     }
 
     public UserToken() {
@@ -94,5 +99,13 @@ public class UserToken {
 
     public void setSurname(String surname) {
         this.surname = surname;
+    }
+
+    public ZonedDateTime getValidTo() {
+        return validTo;
+    }
+
+    public void setValidTo(ZonedDateTime validTo) {
+        this.validTo = validTo;
     }
 }

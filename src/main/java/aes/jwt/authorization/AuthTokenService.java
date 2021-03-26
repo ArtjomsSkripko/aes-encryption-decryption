@@ -22,6 +22,9 @@ public class AuthTokenService {
             userTokenContainer.setTokenId(authContext.getTokenId());
             userTokenContainer.setUserRole(authContext.getUserRole());
             userTokenContainer.setCustomerId(authContext.getCustomerId());
+            userTokenContainer.setName(authContext.getName());
+            userTokenContainer.setSurname(authContext.getSurname());
+            userTokenContainer.setValidTo(authContext.getValidTo());
             return userTokenContainer;
         } else {
             throw authContext.getValidationException();

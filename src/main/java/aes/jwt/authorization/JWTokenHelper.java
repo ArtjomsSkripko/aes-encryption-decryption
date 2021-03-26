@@ -1,6 +1,7 @@
 package aes.jwt.authorization;
 
 import java.text.ParseException;
+import java.time.ZonedDateTime;
 import java.util.Collections;
 import java.util.Objects;
 
@@ -41,6 +42,7 @@ public class JWTokenHelper {
     private static final String JWT_CLAIMS_NAME = "name";
     private static final String JWT_CLAIMS_SURNAME = "surname";
     private static final String JWT_CLAIMS_USER_ROLE = "role";
+    private static final String JWT_CLAIMS_VALID_TO = "valid_to";
 
     public UserToken parseAccessToken(String token) throws ParseException, BadJOSEException, JOSEException {
         JWKSet jwkSet = new JWKSet();
@@ -64,6 +66,7 @@ public class JWTokenHelper {
             authContext.setUserRole(claimsSet.getStringClaim(JWT_CLAIMS_USER_ROLE));
             authContext.setName(claimsSet.getStringClaim(JWT_CLAIMS_NAME));
             authContext.setSurname(claimsSet.getStringClaim(JWT_CLAIMS_SURNAME));
+            authContext.setValidTo(ZonedDateTime.parse(claimsSet.getStringClaim(JWT_CLAIMS_VALID_TO)));
         } catch (BadJWTException e) {
             returnException = new Exception(e.getMessage());
         }
@@ -71,13 +74,14 @@ public class JWTokenHelper {
         return authContext;
     }
 
-    public String createJWT(String userId, String userName, String name, String surname) throws JOSEException {
+    public String createJWT(String userId, String userName, String name, String surname, String validTo) throws JOSEException {
         JSONObject jsonObject = new JSONObject();
         jsonObject.put(JWT_CLAIMS_USER_ID, userId);
         jsonObject.put(JWT_CLAIMS_USERNAME, userName);
         jsonObject.put(JWT_CLAIMS_USER_ROLE, "REGULAR_USER");
         jsonObject.put(JWT_CLAIMS_NAME, name);
         jsonObject.put(JWT_CLAIMS_SURNAME, surname);
+        jsonObject.put(JWT_CLAIMS_VALID_TO, validTo);
         JWSObject jwsObject = new JWSObject(new JWSHeader(JWSAlgorithm.HS256), new Payload(jsonObject));
         jwsObject.sign(new MACSigner(Objects.requireNonNull(env.getProperty("jwt.key"))));
 

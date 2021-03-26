@@ -1,5 +1,7 @@
 package aes.model;
 
+import java.time.LocalDate;
+
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 
@@ -11,6 +13,7 @@ public class Customer {
     private String username;
     private String password;
     private String role;
+    private LocalDate passwordLastUpdate;
 
     public Customer() {
     }
@@ -21,6 +24,14 @@ public class Customer {
         this.username = username;
         this.password = password;
         this.role = role;
+    }
+
+    public LocalDate getPasswordLastUpdate() {
+        return passwordLastUpdate;
+    }
+
+    public void setPasswordLastUpdate(LocalDate passwordLastUpdate) {
+        this.passwordLastUpdate = passwordLastUpdate;
     }
 
     public Integer getCustomerId() {
@@ -86,6 +97,7 @@ public class Customer {
             .append(username, customer.username)
             .append(password, customer.password)
             .append(role, customer.role)
+            .append(passwordLastUpdate, customer.passwordLastUpdate)
             .isEquals();
     }
 
@@ -98,6 +110,7 @@ public class Customer {
             .append(username)
             .append(password)
             .append(role)
+            .append(passwordLastUpdate)
             .toHashCode();
     }
 }

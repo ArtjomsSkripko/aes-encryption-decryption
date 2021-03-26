@@ -1,5 +1,7 @@
 package aes.repository;
 
+import java.sql.Date;
+import java.time.LocalDate;
 import java.util.List;
 
 import javax.sql.DataSource;
@@ -23,14 +25,15 @@ public class AESRepository {
     protected static final String CLN_NAME = "name";
     protected static final String CLN_SURNAME = "surname";
     protected static final String CLN_ROLE = "role";
+    protected static final String CLN_UPDATE_DATE = "update_date";
 
     private static final String FIND_USER_SQL =
-        "SELECT customer_id, username, password, name, surname, role " +
+        "SELECT customer_id, username, password, name, surname, role, update_date " +
             "FROM emsdb.customer " +
             "WHERE username=:username";
 
     private static final String UPDATE_PASSWORD_SQL = "UPDATE emsdb.customer " +
-    "SET password=:password WHERE username=:username";
+    "SET password=:password, update_date=:update_date WHERE username=:username";
 
     private final NamedParameterJdbcTemplate parameterTemplate;
     private final SimpleJdbcInsert insertCustomerIml;
@@ -40,7 +43,7 @@ public class AESRepository {
     public AESRepository(NamedParameterJdbcTemplate parameterTemplate, DataSource dataSource) {
         this.parameterTemplate = parameterTemplate;
         this.insertCustomerIml = new SimpleJdbcInsert(dataSource).withTableName("emsdb.customer")
-            .usingColumns(CLN_USERNAME, CLN_PASSWORD, CLN_NAME, CLN_ROLE, CLN_SURNAME)
+            .usingColumns(CLN_USERNAME, CLN_PASSWORD, CLN_NAME, CLN_ROLE, CLN_SURNAME, CLN_UPDATE_DATE)
             .usingGeneratedKeyColumns(CLN_CUSTOMER_ID);
         insertCustomerIml.withoutTableColumnMetaDataAccess();
 
@@ -58,6 +61,7 @@ public class AESRepository {
         passengerParams.addValue(CLN_ROLE, customer.getRole());
         passengerParams.addValue(CLN_USERNAME, customer.getUsername());
         passengerParams.addValue(CLN_SURNAME, customer.getSurname());
+        passengerParams.addValue(CLN_UPDATE_DATE, Date.valueOf(LocalDate.now()));
 
         insertCustomerIml.executeAndReturnKey(passengerParams).longValue();
     }
@@ -66,6 +70,7 @@ public class AESRepository {
         MapSqlParameterSource passengerParams = new MapSqlParameterSource();
         passengerParams.addValue(CLN_USERNAME, userName);
         passengerParams.addValue(CLN_PASSWORD, password);
+        passengerParams.addValue(CLN_UPDATE_DATE, Date.valueOf(LocalDate.now()));
 
         parameterTemplate.update(UPDATE_PASSWORD_SQL, passengerParams);
     }

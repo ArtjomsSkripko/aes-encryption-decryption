@@ -4,8 +4,13 @@ import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
+import java.time.Duration;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import java.util.Arrays;
 import java.util.Base64;
+import java.util.Objects;
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
@@ -18,6 +23,7 @@ import javax.crypto.spec.SecretKeySpec;
 import aes.jwt.authorization.JWTokenHelper;
 import aes.model.Customer;
 import aes.model.NewCustomerRequest;
+import aes.model.ResponseDTO;
 import aes.repository.AESRepository;
 import com.nimbusds.jose.JOSEException;
 import org.apache.commons.lang3.tuple.Pair;
@@ -91,39 +97,37 @@ public class AESService {
 
     public String generateToken(String userName, String password) throws JOSEException {
         Customer foundCustomer = repository.findCustomer(userName);
+        validateUserAccess(foundCustomer, password);
 
-        String actualPassword = foundCustomer == null ? null : decryptText(foundCustomer.getPassword(), String.valueOf(env.getProperty("aes.key"))).getKey();
-        if (password == null || !password.equals(actualPassword)) {
-            throw new SecurityException("Access denied");
+        if (foundCustomer.getPasswordLastUpdate().atStartOfDay()
+            .plus(Objects.requireNonNull(env.getProperty("password.validity", Duration.class)))
+            .isBefore(LocalDateTime.now())) {
+            throw new SecurityException("Password has expired, please change your password");
         }
+
         return "Bearer " + jwTokenHelper.createJWT(foundCustomer.getCustomerId().toString(), foundCustomer.getUsername(),
-            foundCustomer.getName(), foundCustomer.getSurname());
+            foundCustomer.getName(), foundCustomer.getSurname(),
+            ZonedDateTime.now().plus(Objects.requireNonNull(env.getProperty("jwt.validity", Duration.class))).toString());
     }
 
-    public Customer updatePassword(String userName, String oldPassword, String newPassword) throws BadPaddingException, InvalidAlgorithmParameterException, NoSuchAlgorithmException, IllegalBlockSizeException, NoSuchPaddingException, InvalidKeyException {
+    public ResponseDTO updatePassword(String userName, String oldPassword, String newPassword) throws BadPaddingException, InvalidAlgorithmParameterException, NoSuchAlgorithmException, IllegalBlockSizeException, NoSuchPaddingException, InvalidKeyException, JOSEException {
         Customer foundCustomer = repository.findCustomer(userName);
-
-        String actualPassword = foundCustomer == null ? null : decryptText(foundCustomer.getPassword(), String.valueOf(env.getProperty("aes.key"))).getKey();
-        if (oldPassword == null || !oldPassword.equals(actualPassword)) {
-            throw new SecurityException("Access denied");
-        }
+        validateUserAccess(foundCustomer, oldPassword);
 
         repository.updatePassword(userName, encryptTextWithKey(newPassword, String.valueOf(env.getProperty("aes.key"))));
         foundCustomer.setPassword(newPassword);
-        return foundCustomer;
+
+        return new ResponseDTO(generateToken(foundCustomer), foundCustomer);
     }
 
-    public Pair<String, Customer> createUser(NewCustomerRequest customerRequest) throws JOSEException, BadPaddingException, InvalidAlgorithmParameterException, NoSuchAlgorithmException, IllegalBlockSizeException, NoSuchPaddingException, InvalidKeyException {
+    public ResponseDTO createUser(NewCustomerRequest customerRequest) throws JOSEException, BadPaddingException, InvalidAlgorithmParameterException, NoSuchAlgorithmException, IllegalBlockSizeException, NoSuchPaddingException, InvalidKeyException {
         Customer newCustomer = new Customer(customerRequest.getName(), customerRequest.getSurname(), customerRequest.getUsername(),
             encryptTextWithKey(customerRequest.getPassword(), String.valueOf(env.getProperty("aes.key"))), "REGULAR_USER");
         repository.addNewCustomer(newCustomer);
         Customer foundCustomer = repository.findCustomer(newCustomer.getUsername());
 
-        String token = "Bearer " + jwTokenHelper.createJWT(String.valueOf(foundCustomer.getCustomerId()), foundCustomer.getUsername(),
-            foundCustomer.getName(), foundCustomer.getSurname());
-
         foundCustomer.setPassword(customerRequest.getPassword());
-        return Pair.of(token, foundCustomer);
+        return new ResponseDTO(generateToken(foundCustomer), foundCustomer);
     }
 
     /* Encryption and decryption specific methods */
@@ -162,5 +166,18 @@ public class AESService {
         byte[] iv = new byte[16];
         new SecureRandom().nextBytes(iv);
         return new IvParameterSpec(iv);
+    }
+
+    private String generateToken(Customer customer) throws JOSEException {
+        return "Bearer " + jwTokenHelper.createJWT(String.valueOf(customer.getCustomerId()), customer.getUsername(),
+            customer.getName(), customer.getSurname(),
+            ZonedDateTime.now().plus(Objects.requireNonNull(env.getProperty("jwt.validity", Duration.class))).toString());
+    }
+
+    private void validateUserAccess(Customer foundCustomer, String password){
+        String actualPassword = foundCustomer == null ? null : decryptText(foundCustomer.getPassword(), String.valueOf(env.getProperty("aes.key"))).getKey();
+        if (password == null || !password.equals(actualPassword)) {
+            throw new SecurityException("Access denied");
+        }
     }
 }

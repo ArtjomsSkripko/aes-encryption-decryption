@@ -11,6 +11,7 @@ import static aes.repository.AESRepository.CLN_NAME;
 import static aes.repository.AESRepository.CLN_PASSWORD;
 import static aes.repository.AESRepository.CLN_ROLE;
 import static aes.repository.AESRepository.CLN_SURNAME;
+import static aes.repository.AESRepository.CLN_UPDATE_DATE;
 import static aes.repository.AESRepository.CLN_USERNAME;
 
 public class CustomerRowExtractor implements RowMapper<Customer> {
@@ -24,6 +25,7 @@ public class CustomerRowExtractor implements RowMapper<Customer> {
         customer.setRole(rs.getString(CLN_ROLE));
         customer.setSurname(rs.getString(CLN_SURNAME));
         customer.setUsername(rs.getString(CLN_USERNAME));
+        customer.setPasswordLastUpdate(rs.getDate(CLN_UPDATE_DATE).toLocalDate());
 
         return customer;
     }
