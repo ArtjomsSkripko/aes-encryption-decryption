@@ -1,18 +1,13 @@
 package aes.model;
 
-import com.sun.istack.internal.NotNull;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 
 public class NewCustomerRequest {
 
-    @NotNull
     private String name;
-    @NotNull
     private String surname;
-    @NotNull
     private String username;
-    @NotNull
     private String password;
 
     public String getName() {
